@@ -1,302 +1,710 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Drivo · Panel interno</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<style>
-  :root{
-    --bg:#10151c;
-    --surface:#1a222c;
-    --surface-2:#212b37;
-    --border:#2b3644;
-    --text:#e8ecf1;
-    --text-dim:#8a97a8;
-    --amber:#f2a93b;
-    --amber-dim:#8a662a;
-    --green:#3fa796;
-    --red:#e0554a;
-    --radius:10px;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:'IBM Plex Sans',sans-serif;
-    font-size:14px;
-    -webkit-font-smoothing:antialiased;
-  }
-  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
-  .mono{font-family:'IBM Plex Mono',monospace;}
-  #app{display:flex;flex-direction:column;min-height:100vh;}
-
-  /* Top bar */
-  .topbar{
-    display:flex;align-items:center;gap:28px;
-    padding:14px 22px;border-bottom:1px solid var(--border);
-    background:var(--surface);flex-shrink:0;flex-wrap:wrap;
-  }
-  .topbar h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.2px;}
-  .topbar h1 span{color:var(--amber);}
-  .stats{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap;}
-  .stat{display:flex;flex-direction:column;line-height:1.2;}
-  .stat .n{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;}
-  .stat .l{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;}
-  .nav{display:flex;gap:4px;margin-left:20px;}
-  .nav button{
-    background:none;border:1px solid transparent;color:var(--text-dim);
-    padding:6px 12px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;
-  }
-  .nav button.active{background:var(--surface-2);color:var(--text);border-color:var(--border);}
-
-  /* Layout */
-  .body{display:flex;flex:1;min-height:0;}
-  .sidebar{
-    width:280px;flex-shrink:0;border-right:1px solid var(--border);
-    overflow-y:auto;background:var(--surface);
-  }
-  .sidebar-head{padding:14px 16px 8px;display:flex;justify-content:space-between;align-items:center;}
-  .sidebar-head span{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-dim);}
-  .btn-add{
-    background:none;border:1px solid var(--border);color:var(--amber);
-    width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1;
-  }
-  .stage-group{padding:4px 8px 10px;}
-  .stage-label{
-    display:flex;align-items:center;gap:6px;padding:6px 8px;
-    font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-dim);
-  }
-  .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .dot.cliente{background:var(--green);}
-  .dot.negociacion{background:var(--amber);}
-  .dot.prospecto{background:#5b7a99;}
-  .dot.perdido{background:var(--red);}
-
-  .client-item{
-    display:flex;align-items:center;gap:8px;padding:9px 10px;margin:1px 0;
-    border-radius:8px;cursor:pointer;color:var(--text);
-  }
-  .client-item:hover{background:var(--surface-2);}
-  .client-item.selected{background:var(--surface-2);border:1px solid var(--amber-dim);}
-  .client-item .name{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-  .empty-side{padding:20px 16px;color:var(--text-dim);font-size:13px;}
-
-  /* Main */
-  .main{flex:1;overflow-y:auto;padding:26px 32px;min-width:0;}
-  .empty-main{color:var(--text-dim);padding:60px 20px;text-align:center;max-width:340px;margin:0 auto;}
-  .empty-main h2{color:var(--text);font-size:18px;margin-bottom:8px;}
-
-  .client-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:16px;}
-  .client-header h2{font-size:22px;margin:0;}
-  .client-sub{color:var(--text-dim);font-size:13px;margin-top:4px;}
-  .stage-select{
-    background:var(--surface);border:1px solid var(--border);color:var(--text);
-    padding:6px 10px;border-radius:8px;font-family:inherit;font-size:12px;cursor:pointer;
-  }
-  .tabs{display:flex;gap:2px;margin:20px 0 16px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
-  .tabs button{
-    background:none;border:none;color:var(--text-dim);padding:9px 4px;margin-right:20px;
-    font-family:inherit;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;
-  }
-  .tabs button.active{color:var(--amber);border-bottom-color:var(--amber);}
-
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;margin-bottom:12px;}
-  .card h3{margin:0 0 12px;font-size:14px;}
-  .field-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
-  .field{flex:1;min-width:160px;}
-  .field label{display:block;font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;}
-  input[type=text],input[type=number],input[type=date],input[type=email],input[type=password],textarea,select{
-    width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
-    padding:8px 10px;border-radius:7px;font-family:inherit;font-size:13px;
-  }
-  input[type=file]{color:var(--text-dim);font-size:12px;flex:1;}
-  textarea{resize:vertical;min-height:60px;}
-  .row-inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-
-  .btn{
-    background:var(--amber);color:#1a1206;border:none;padding:8px 14px;border-radius:8px;
-    font-family:inherit;font-weight:600;font-size:13px;cursor:pointer;
-  }
-  .btn.ghost{background:none;border:1px solid var(--border);color:var(--text);font-weight:500;}
-  .btn.danger{background:none;border:1px solid var(--red);color:var(--red);font-weight:500;padding:5px 10px;font-size:12px;}
-  .btn.small{padding:5px 10px;font-size:12px;}
-
-  .task-row,.note-row{
-    display:flex;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);
-  }
-  .task-row:last-child,.note-row:last-child{border-bottom:none;}
-  .task-row input[type=checkbox]{margin-top:2px;accent-color:var(--amber);width:16px;height:16px;}
-  .task-title{flex:1;font-size:13px;}
-  .task-title.done{color:var(--text-dim);text-decoration:line-through;}
-  .task-meta{font-size:11px;color:var(--text-dim);}
-  .note-text{flex:1;font-size:13px;line-height:1.5;}
-  .note-date{font-size:11px;color:var(--text-dim);white-space:nowrap;margin-left:8px;}
-
-  .quick-add{display:flex;gap:8px;margin-bottom:14px;align-items:center;}
-  .quick-add input{flex:1;}
-
-  .global-tasks .task-row{padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;}
-  .client-tag{font-size:11px;color:var(--amber);background:rgba(242,169,59,.12);padding:2px 7px;border-radius:5px;margin-left:8px;}
-
-  .estado-badge{font-size:11px;padding:2px 7px;border-radius:5px;margin-left:2px;}
-  .estado-badge.estado-pendiente{background:rgba(242,169,59,.12);color:var(--amber);}
-  .estado-badge.estado-cobrada{background:rgba(63,167,150,.12);color:var(--green);}
-  .estado-badge.estado-vencida{background:rgba(224,85,74,.12);color:var(--red);}
-
-  .toast{
-    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-    background:var(--surface-2);border:1px solid var(--border);padding:8px 16px;border-radius:8px;
-    font-size:12px;color:var(--text-dim);opacity:0;pointer-events:none;transition:opacity .3s;
-  }
-  .toast.show{opacity:1;}
-  .empty-list{color:var(--text-dim);font-size:13px;padding:14px 4px;}
-
-  .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;}
-  .login-card{width:320px;}
-  .login-error{color:var(--red);font-size:12px;margin-bottom:10px;min-height:14px;}
-</style>
-</head>
-<body>
-<div id="app"></div>
-<div class="toast" id="toast">Guardado</div>
-
-<script>
-/* ---- Config Supabase (proyecto drivo-erp-interno, separado del producto) ---- */
-const SUPABASE_URL = 'https://myhehmrjhcrnxitgtnhi.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15aGVobXJqaGNybnhpdGd0bmhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5OTkwNDksImV4cCI6MjA5ODU3NTA0OX0.4wAe4HRNwiyg6hFddayrlkrA8wnBjwIvhkFXR8eFptc';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-const MI_EMPRESA = {
-  nombre: 'Roi Álvarez Traba',
-  nif: '46291863Q',
-  direccion: 'C/ Doctor Teijeiro 16, 1ºD, Santiago de Compostela',
-  email: 'grupodrivo@gmail.com',
-  iban: 'ES61 0049 6143 8727 1004 4892'
-};
-
-let session = null;
-let state = { clients:[], contracts:[], tasks:[], notes:[], documentos:[], facturas:[] };
-let view = { screen: 'pipeline', clientId: null, tab: 'resumen' };
-
-const todayStr = () => {
-  const d = new Date();
-  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
-};
-const todayISO = () => new Date().toISOString().slice(0,10);
-const round2 = n => Math.round((Number(n)||0)*100)/100;
-
-function formatDate(iso){
-  if(!iso) return '';
-  const d = new Date(iso);
-  if(isNaN(d)) return iso;
-  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
-}
-
-function showToast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1200);
-}
-
-function stageLabel(s){
-  return {prospecto:'Prospecto', negociacion:'Negociación', cliente:'Cliente', perdido:'Perdido'}[s] || s;
-}
-function estadoLabel(s){
-  return {pendiente:'Pendiente', cobrada:'Cobrada', vencida:'Vencida'}[s] || s;
-}
-function tipoLabel(t){
-  return {contrato:'Contrato', dpa:'DPA', factura:'Factura', otro:'Otro'}[t] || t;
-}
-
-function clientById(id){ return state.clients.find(c=>c.id===id); }
-
-/* ---- Mapeo DB (snake_case) <-> estado en memoria (camelCase) ---- */
-function mapClient(r){ return { id:r.id, name:r.nombre, contact:r.contacto||'', city:r.ciudad||'', phone:r.telefono||'', email:r.email||'', stage:r.stage, createdAt: formatDate(r.created_at) }; }
-function mapContract(r){ return { id:r.id, clientId:r.cliente_id, description:r.descripcion||'', setupFee:Number(r.setup_fee)||0, monthlyFee:Number(r.monthly_fee)||0, firstMonthFree:!!r.first_month_free, signed:!!r.signed, date:r.fecha||'' }; }
-function mapTask(r){ return { id:r.id, clientId:r.cliente_id, title:r.title, done:!!r.done, dueDate:r.due_date||'' }; }
-function mapNote(r){ return { id:r.id, clientId:r.cliente_id, text:r.texto, date: formatDate(r.created_at) }; }
-function mapDocumento(r){ return { id:r.id, clientId:r.cliente_id, name:r.nombre, type:r.tipo, storagePath:r.storage_path, uploadedAt:r.fecha_subida }; }
-function mapFactura(r){ return { id:r.id, clientId:r.cliente_id, number:r.numero, concept:r.concepto, base:Number(r.base_imponible), ivaPct:Number(r.iva_pct), iva:Number(r.iva), irpfPct:Number(r.irpf_pct), irpf:Number(r.irpf), total:Number(r.total), issueDate:r.fecha_emision, paidDate:r.fecha_cobro, status:r.estado, pdfPath:r.pdf_path }; }
-
-/* ---- Auth ---- */
-async function init(){
-  const { data: { session: s } } = await sb.auth.getSession();
-  session = s;
-  if(session) await loadAll();
-  render();
-  sb.auth.onAuthStateChange(async (event, s2) => {
-    session = s2;
-    if(event === 'SIGNED_IN') await loadAll();
-    if(event === 'SIGNED_OUT'){
-      state = { clients:[], contracts:[], tasks:[], notes:[], documentos:[], facturas:[] };
-      view = { screen:'pipeline', clientId:null, tab:'resumen' };
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drivo · Panel interno</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #10151c;
+      --surface: #1a222c;
+      --surface-2: #212b37;
+      --border: #2b3644;
+      --text: #e8ecf1;
+      --text-dim: #8a97a8;
+      --amber: #f2a93b;
+      --amber-dim: #8a662a;
+      --green: #3fa796;
+      --red: #e0554a;
+      --radius: 10px;
     }
-    render();
-  });
-}
 
-async function handleLogin(e){
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const { error } = await sb.auth.signInWithPassword({ email, password });
-  document.getElementById('loginError').textContent = error ? 'Credenciales incorrectas.' : '';
-}
+    * {
+      box-sizing: border-box;
+    }
 
-async function handleSignup(){
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const errEl = document.getElementById('loginError');
-  if(!email || password.length < 6){ errEl.textContent = 'Introduce un email y una contraseña de al menos 6 caracteres.'; return; }
-  const { error } = await sb.auth.signUp({ email, password });
-  errEl.textContent = error ? error.message : 'Cuenta creada. Si Supabase pide confirmación, revisa tu email.';
-}
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      -webkit-font-smoothing: antialiased;
+    }
 
-async function logout(){
-  await sb.auth.signOut();
-}
+    h1,
+    h2,
+    h3,
+    .display {
+      font-family: 'Space Grotesk', sans-serif;
+    }
 
-/* ---- Carga de datos ---- */
-async function loadAll(){
-  const [clientsRes, contractsRes, tasksRes, notesRes, docsRes, invRes] = await Promise.all([
-    sb.from('clientes').select('*').order('created_at'),
-    sb.from('contratos').select('*'),
-    sb.from('tareas').select('*').order('created_at'),
-    sb.from('notas').select('*').order('created_at', { ascending:false }),
-    sb.from('documentos').select('*'),
-    sb.from('facturas').select('*')
-  ]);
-  state.clients = (clientsRes.data||[]).map(mapClient);
-  state.contracts = (contractsRes.data||[]).map(mapContract);
-  state.tasks = (tasksRes.data||[]).map(mapTask);
-  state.notes = (notesRes.data||[]).map(mapNote);
-  state.documentos = (docsRes.data||[]).map(mapDocumento);
-  state.facturas = (invRes.data||[]).map(mapFactura);
-}
+    .mono {
+      font-family: 'IBM Plex Mono', monospace;
+    }
 
-/* ---- Render raíz ---- */
-function render(){
-  const app = document.getElementById('app');
-  if(!session){ app.innerHTML = renderLogin(); return; }
+    #app {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
 
-  const activeClients = state.clients.filter(c=>c.stage==='cliente').length;
-  const mrr = state.contracts.filter(k=>k.signed).reduce((a,k)=>a+(Number(k.monthlyFee)||0),0);
-  const pendingTasks = state.tasks.filter(t=>!t.done).length;
-  const pendingInvoiced = state.facturas.filter(f=>f.status!=='cobrada').reduce((a,f)=>a+(f.total||0),0);
+    /* Top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
 
-  app.innerHTML = `
+    .topbar h1 {
+      font-size: 17px;
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: .2px;
+    }
+
+    .topbar h1 span {
+      color: var(--amber);
+    }
+
+    .stats {
+      display: flex;
+      gap: 22px;
+      margin-left: auto;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+    }
+
+    .stat .n {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .stat .l {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 4px;
+      margin-left: 20px;
+    }
+
+    .nav button {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--text-dim);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .nav button.active {
+      background: var(--surface-2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    /* Layout */
+    .body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      background: var(--surface);
+    }
+
+    .sidebar-head {
+      padding: 14px 16px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-head span {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text-dim);
+    }
+
+    .btn-add {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--amber);
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    .stage-group {
+      padding: 4px 8px 10px;
+    }
+
+    .stage-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-dim);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot.cliente {
+      background: var(--green);
+    }
+
+    .dot.negociacion {
+      background: var(--amber);
+    }
+
+    .dot.prospecto {
+      background: #5b7a99;
+    }
+
+    .dot.perdido {
+      background: var(--red);
+    }
+
+    .client-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      margin: 1px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text);
+    }
+
+    .client-item:hover {
+      background: var(--surface-2);
+    }
+
+    .client-item.selected {
+      background: var(--surface-2);
+      border: 1px solid var(--amber-dim);
+    }
+
+    .client-item .name {
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty-side {
+      padding: 20px 16px;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    /* Main */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 26px 32px;
+      min-width: 0;
+    }
+
+    .empty-main {
+      color: var(--text-dim);
+      padding: 60px 20px;
+      text-align: center;
+      max-width: 340px;
+      margin: 0 auto;
+    }
+
+    .empty-main h2 {
+      color: var(--text);
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .client-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 4px;
+      gap: 16px;
+    }
+
+    .client-header h2 {
+      font-size: 22px;
+      margin: 0;
+    }
+
+    .client-sub {
+      color: var(--text-dim);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .stage-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 2px;
+      margin: 20px 0 16px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+
+    .tabs button {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      padding: 9px 4px;
+      margin-right: 20px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+
+    .tabs button.active {
+      color: var(--amber);
+      border-bottom-color: var(--amber);
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+
+    .card h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .field {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 4px;
+    }
+
+    input[type=text],
+    input[type=number],
+    input[type=date],
+    input[type=email],
+    input[type=password],
+    textarea,
+    select {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 13px;
+    }
+
+    input[type=file] {
+      color: var(--text-dim);
+      font-size: 12px;
+      flex: 1;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .row-inline {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      background: var(--amber);
+      color: #1a1206;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .btn.ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .btn.danger {
+      background: none;
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-weight: 500;
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    .btn.small {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    .task-row,
+    .note-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 4px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .task-row:last-child,
+    .note-row:last-child {
+      border-bottom: none;
+    }
+
+    .task-row input[type=checkbox] {
+      margin-top: 2px;
+      accent-color: var(--amber);
+      width: 16px;
+      height: 16px;
+    }
+
+    .task-title {
+      flex: 1;
+      font-size: 13px;
+    }
+
+    .task-title.done {
+      color: var(--text-dim);
+      text-decoration: line-through;
+    }
+
+    .task-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .note-text {
+      flex: 1;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .note-date {
+      font-size: 11px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      margin-left: 8px;
+    }
+
+    .quick-add {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+
+    .quick-add input {
+      flex: 1;
+    }
+
+    .global-tasks .task-row {
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+
+    .client-tag {
+      font-size: 11px;
+      color: var(--amber);
+      background: rgba(242, 169, 59, .12);
+      padding: 2px 7px;
+      border-radius: 5px;
+      margin-left: 8px;
+    }
+
+    .estado-badge {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      margin-left: 2px;
+    }
+
+    .estado-badge.estado-pendiente {
+      background: rgba(242, 169, 59, .12);
+      color: var(--amber);
+    }
+
+    .estado-badge.estado-cobrada {
+      background: rgba(63, 167, 150, .12);
+      color: var(--green);
+    }
+
+    .estado-badge.estado-vencida {
+      background: rgba(224, 85, 74, .12);
+      color: var(--red);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--text-dim);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .empty-list {
+      color: var(--text-dim);
+      font-size: 13px;
+      padding: 14px 4px;
+    }
+
+    .login-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .login-card {
+      width: 320px;
+    }
+
+    .login-error {
+      color: var(--red);
+      font-size: 12px;
+      margin-bottom: 10px;
+      min-height: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app"></div>
+  <div class="toast" id="toast">Guardado</div>
+
+  <script>
+    /* ---- Config Supabase (proyecto drivo-erp-interno, separado del producto) ---- */
+    const SUPABASE_URL = 'https://myhehmrjhcrnxitgtnhi.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15aGVobXJqaGNybnhpdGd0bmhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5OTkwNDksImV4cCI6MjA5ODU3NTA0OX0.4wAe4HRNwiyg6hFddayrlkrA8wnBjwIvhkFXR8eFptc';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const MI_EMPRESA = {
+      nombre: 'Roi Álvarez Traba',
+      nif: '46291863Q',
+      direccion: 'C/ Doctor Teijeiro 16, 1ºD, Santiago de Compostela',
+      email: 'grupodrivo@gmail.com',
+      iban: 'ES61 0049 6143 8727 1004 4892'
+    };
+
+    let session = null;
+    let state = { clients: [], contracts: [], tasks: [], notes: [], documentos: [], facturas: [], credenciales: [] };
+    let visibleCreds = {};
+    let view = { screen: 'pipeline', clientId: null, tab: 'resumen' };
+
+    const todayStr = () => {
+      const d = new Date();
+      return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    };
+    const todayISO = () => new Date().toISOString().slice(0, 10);
+    const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 1200);
+    }
+
+    function stageLabel(s) {
+      return { prospecto: 'Prospecto', negociacion: 'Negociación', cliente: 'Cliente', perdido: 'Perdido' }[s] || s;
+    }
+    function estadoLabel(s) {
+      return { pendiente: 'Pendiente', cobrada: 'Cobrada', vencida: 'Vencida' }[s] || s;
+    }
+    function tipoLabel(t) {
+      return { contrato: 'Contrato', dpa: 'DPA', factura: 'Factura', otro: 'Otro' }[t] || t;
+    }
+
+    function clientById(id) { return state.clients.find(c => c.id === id); }
+
+    /* ---- Mapeo DB (snake_case) <-> estado en memoria (camelCase) ---- */
+    function mapClient(r) { return { id: r.id, name: r.nombre, contact: r.contacto || '', city: r.ciudad || '', phone: r.telefono || '', email: r.email || '', stage: r.stage, createdAt: formatDate(r.created_at) }; }
+    function mapContract(r) { return { id: r.id, clientId: r.cliente_id, description: r.descripcion || '', setupFee: Number(r.setup_fee) || 0, monthlyFee: Number(r.monthly_fee) || 0, firstMonthFree: !!r.first_month_free, signed: !!r.signed, date: r.fecha || '' }; }
+    function mapTask(r) { return { id: r.id, clientId: r.cliente_id, title: r.title, done: !!r.done, dueDate: r.due_date || '' }; }
+    function mapNote(r) { return { id: r.id, clientId: r.cliente_id, text: r.texto, date: formatDate(r.created_at) }; }
+    function mapDocumento(r) { return { id: r.id, clientId: r.cliente_id, name: r.nombre, type: r.tipo, storagePath: r.storage_path, uploadedAt: r.fecha_subida }; }
+    function mapFactura(r) { return { id: r.id, clientId: r.cliente_id, number: r.numero, concept: r.concepto, base: Number(r.base_imponible), ivaPct: Number(r.iva_pct), iva: Number(r.iva), irpfPct: Number(r.irpf_pct), irpf: Number(r.irpf), total: Number(r.total), issueDate: r.fecha_emision, paidDate: r.fecha_cobro, status: r.estado, pdfPath: r.pdf_path }; }
+    function mapCredencial(r) { return { id: r.id, clientId: r.cliente_id, service: r.servicio, user: r.usuario || '', password: r.password || '', url: r.url || '', notes: r.notas || '', createdAt: formatDate(r.created_at) }; }
+
+    /* ---- Auth ---- */
+    async function init() {
+      const { data: { session: s } } = await sb.auth.getSession();
+      session = s;
+      if (session) await loadAll();
+      render();
+      sb.auth.onAuthStateChange(async (event, s2) => {
+        session = s2;
+        if (event === 'SIGNED_IN') await loadAll();
+        if (event === 'SIGNED_OUT') {
+          state = { clients: [], contracts: [], tasks: [], notes: [], documentos: [], facturas: [], credenciales: [] };
+          view = { screen: 'pipeline', clientId: null, tab: 'resumen' };
+          visibleCreds = {};
+        }
+        render();
+      });
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      document.getElementById('loginError').textContent = error ? 'Credenciales incorrectas.' : '';
+    }
+
+    async function handleSignup() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errEl = document.getElementById('loginError');
+      if (!email || password.length < 6) { errEl.textContent = 'Introduce un email y una contraseña de al menos 6 caracteres.'; return; }
+      const { error } = await sb.auth.signUp({ email, password });
+      errEl.textContent = error ? error.message : 'Cuenta creada. Si Supabase pide confirmación, revisa tu email.';
+    }
+
+    async function logout() {
+      await sb.auth.signOut();
+    }
+
+    /* ---- Carga de datos ---- */
+    async function loadAll() {
+      const [clientsRes, contractsRes, tasksRes, notesRes, docsRes, invRes, credsRes] = await Promise.all([
+        sb.from('clientes').select('*').order('created_at'),
+        sb.from('contratos').select('*'),
+        sb.from('tareas').select('*').order('created_at'),
+        sb.from('notas').select('*').order('created_at', { ascending: false }),
+        sb.from('documentos').select('*'),
+        sb.from('facturas').select('*'),
+        sb.from('credenciales').select('*').order('created_at')
+      ]);
+      state.clients = (clientsRes.data || []).map(mapClient);
+      state.contracts = (contractsRes.data || []).map(mapContract);
+      state.tasks = (tasksRes.data || []).map(mapTask);
+      state.notes = (notesRes.data || []).map(mapNote);
+      state.documentos = (docsRes.data || []).map(mapDocumento);
+      state.facturas = (invRes.data || []).map(mapFactura);
+      state.credenciales = (credsRes.data || []).map(mapCredencial);
+    }
+
+    /* ---- Render raíz ---- */
+    function render() {
+      const app = document.getElementById('app');
+      if (!session) { app.innerHTML = renderLogin(); return; }
+
+      const activeClients = state.clients.filter(c => c.stage === 'cliente').length;
+      const mrr = state.contracts.filter(k => k.signed).reduce((a, k) => a + (Number(k.monthlyFee) || 0), 0);
+      const pendingTasks = state.tasks.filter(t => !t.done).length;
+      const pendingInvoiced = state.facturas.filter(f => f.status !== 'cobrada').reduce((a, f) => a + (f.total || 0), 0);
+
+      app.innerHTML = `
     <div class="topbar">
       <h1>Drivo<span>·</span> Panel interno</h1>
       <div class="nav">
-        <button onclick="setScreen('pipeline')" class="${view.screen==='pipeline'?'active':''}">Clientes</button>
-        <button onclick="setScreen('tasks')" class="${view.screen==='tasks'?'active':''}">Tareas generales</button>
+        <button onclick="setScreen('pipeline')" class="${view.screen === 'pipeline' ? 'active' : ''}">Clientes</button>
+        <button onclick="setScreen('tasks')" class="${view.screen === 'tasks' ? 'active' : ''}">Tareas generales</button>
       </div>
       <div class="stats">
         <div class="stat"><span class="n mono">${activeClients}</span><span class="l">Clientes activos</span></div>
@@ -308,13 +716,13 @@ function render(){
     </div>
     <div class="body">
       <div class="sidebar">${renderSidebar()}</div>
-      <div class="main">${view.screen==='tasks' ? renderGlobalTasks() : renderMain()}</div>
+      <div class="main">${view.screen === 'tasks' ? renderGlobalTasks() : renderMain()}</div>
     </div>
   `;
-}
+    }
 
-function renderLogin(){
-  return `
+    function renderLogin() {
+      return `
     <div class="login-wrap">
       <form class="card login-card" onsubmit="handleLogin(event)">
         <h2 style="margin-top:0;">Drivo<span style="color:var(--amber);">·</span> Panel interno</h2>
@@ -326,59 +734,60 @@ function renderLogin(){
       </form>
     </div>
   `;
-}
+    }
 
-function renderSidebar(){
-  const stages = ['cliente','negociacion','prospecto','perdido'];
-  let html = `<div class="sidebar-head"><span>Clientes / Prospectos</span><button class="btn-add" onclick="addClient()">+</button></div>`;
-  stages.forEach(stage=>{
-    const items = state.clients.filter(c=>c.stage===stage);
-    if(!items.length) return;
-    html += `<div class="stage-group">
+    function renderSidebar() {
+      const stages = ['cliente', 'negociacion', 'prospecto', 'perdido'];
+      let html = `<div class="sidebar-head"><span>Clientes / Prospectos</span><button class="btn-add" onclick="addClient()">+</button></div>`;
+      stages.forEach(stage => {
+        const items = state.clients.filter(c => c.stage === stage);
+        if (!items.length) return;
+        html += `<div class="stage-group">
       <div class="stage-label"><span class="dot ${stage}"></span>${stageLabel(stage)} (${items.length})</div>
-      ${items.map(c=>`
-        <div class="client-item ${view.clientId===c.id?'selected':''}" onclick="selectClient('${c.id}')">
+      ${items.map(c => `
+        <div class="client-item ${view.clientId === c.id ? 'selected' : ''}" onclick="selectClient('${c.id}')">
           <span class="dot ${stage}"></span><span class="name">${escapeHtml(c.name)}</span>
         </div>`).join('')}
     </div>`;
-  });
-  if(!state.clients.length) html += `<div class="empty-side">Sin clientes todavía. Pulsa + para añadir uno.</div>`;
-  return html;
-}
+      });
+      if (!state.clients.length) html += `<div class="empty-side">Sin clientes todavía. Pulsa + para añadir uno.</div>`;
+      return html;
+    }
 
-function renderMain(){
-  if(!view.clientId || !clientById(view.clientId)){
-    return `<div class="empty-main"><h2>Selecciona un cliente</h2><p>O crea uno nuevo con el botón + de la barra lateral.</p></div>`;
-  }
-  const c = clientById(view.clientId);
-  const tabs = ['resumen','contrato','tareas','notas','documentos'];
-  const labels = {resumen:'Resumen', contrato:'Contrato', tareas:'Tareas', notas:'Notas', documentos:'Documentos y facturas'};
-  let body = '';
-  if(view.tab==='resumen') body = renderResumen(c);
-  if(view.tab==='contrato') body = renderContrato(c);
-  if(view.tab==='tareas') body = renderTareas(c);
-  if(view.tab==='notas') body = renderNotas(c);
-  if(view.tab==='documentos') body = renderDocumentos(c);
+    function renderMain() {
+      if (!view.clientId || !clientById(view.clientId)) {
+        return `<div class="empty-main"><h2>Selecciona un cliente</h2><p>O crea uno nuevo con el botón + de la barra lateral.</p></div>`;
+      }
+      const c = clientById(view.clientId);
+      const tabs = ['resumen', 'contrato', 'tareas', 'notas', 'credenciales', 'documentos'];
+      const labels = { resumen: 'Resumen', contrato: 'Contrato', tareas: 'Tareas', notas: 'Notas', credenciales: 'Credenciales', documentos: 'Documentos y facturas' };
+      let body = '';
+      if (view.tab === 'resumen') body = renderResumen(c);
+      if (view.tab === 'contrato') body = renderContrato(c);
+      if (view.tab === 'tareas') body = renderTareas(c);
+      if (view.tab === 'notas') body = renderNotas(c);
+      if (view.tab === 'credenciales') body = renderCredenciales(c);
+      if (view.tab === 'documentos') body = renderDocumentos(c);
 
-  return `
+      return `
     <div class="client-header">
       <div>
         <h2>${escapeHtml(c.name)}</h2>
-        <div class="client-sub">${escapeHtml(c.contact||'Sin contacto asignado')}${c.city? ' · '+escapeHtml(c.city):''}</div>
+        <div class="client-sub">${escapeHtml(c.contact || 'Sin contacto asignado')}${c.city ? ' · ' + escapeHtml(c.city) : ''}</div>
       </div>
       <select class="stage-select" onchange="updateClient('${c.id}','stage',this.value)">
-        ${['prospecto','negociacion','cliente','perdido'].map(s=>`<option value="${s}" ${c.stage===s?'selected':''}>${stageLabel(s)}</option>`).join('')}
+        ${['prospecto', 'negociacion', 'cliente', 'perdido'].map(s => `<option value="${s}" ${c.stage === s ? 'selected' : ''}>${stageLabel(s)}</option>`).join('')}
       </select>
     </div>
     <div class="tabs">
-      ${tabs.map(t=>`<button class="${view.tab===t?'active':''}" onclick="setTab('${t}')">${labels[t]}</button>`).join('')}
+      ${tabs.map(t => `<button class="${view.tab === t ? 'active' : ''}" onclick="setTab('${t}')">${labels[t]}</button>`).join('')}
     </div>
     ${body}
   `;
-}
+    }
 
-function renderResumen(c){
-  return `
+    function renderResumen(c) {
+      return `
     <div class="card">
       <div class="field-row">
         <div class="field"><label>Nombre</label><input type="text" value="${escapeAttr(c.name)}" onchange="updateClient('${c.id}','name',this.value)"></div>
@@ -392,70 +801,107 @@ function renderResumen(c){
       <button class="btn danger" onclick="deleteClient('${c.id}')">Eliminar cliente</button>
     </div>
   `;
-}
+    }
 
-function renderContrato(c){
-  const k = state.contracts.find(k=>k.clientId===c.id);
-  if(!k){
-    return `<div class="card"><p style="color:var(--text-dim);margin:0 0 10px;">Sin contrato todavía.</p>
+    function renderContrato(c) {
+      const k = state.contracts.find(k => k.clientId === c.id);
+      if (!k) {
+        return `<div class="card"><p style="color:var(--text-dim);margin:0 0 10px;">Sin contrato todavía.</p>
       <button class="btn" onclick="addContract('${c.id}')">+ Crear contrato</button></div>`;
-  }
-  return `
+      }
+      return `
     <div class="card">
       <div class="field-row">
         <div class="field" style="flex:2;"><label>Descripción</label><input type="text" value="${escapeAttr(k.description)}" onchange="updateContract('${k.id}','description',this.value)"></div>
-        <div class="field"><label>Fecha firma</label><input type="date" value="${k.date||''}" onchange="updateContract('${k.id}','date',this.value)"></div>
+        <div class="field"><label>Fecha firma</label><input type="date" value="${k.date || ''}" onchange="updateContract('${k.id}','date',this.value)"></div>
       </div>
       <div class="field-row">
         <div class="field"><label>Setup (€)</label><input type="number" value="${k.setupFee}" onchange="updateContract('${k.id}','setupFee',this.value)"></div>
         <div class="field"><label>Cuota mensual (€)</label><input type="number" value="${k.monthlyFee}" onchange="updateContract('${k.id}','monthlyFee',this.value)"></div>
       </div>
       <div class="row-inline" style="margin-top:8px;">
-        <label class="row-inline" style="cursor:pointer;"><input type="checkbox" ${k.signed?'checked':''} onchange="updateContract('${k.id}','signed',this.checked)"> Firmado</label>
-        <label class="row-inline" style="cursor:pointer;margin-left:20px;"><input type="checkbox" ${k.firstMonthFree?'checked':''} onchange="updateContract('${k.id}','firstMonthFree',this.checked)"> Primer mes gratis</label>
+        <label class="row-inline" style="cursor:pointer;"><input type="checkbox" ${k.signed ? 'checked' : ''} onchange="updateContract('${k.id}','signed',this.checked)"> Firmado</label>
+        <label class="row-inline" style="cursor:pointer;margin-left:20px;"><input type="checkbox" ${k.firstMonthFree ? 'checked' : ''} onchange="updateContract('${k.id}','firstMonthFree',this.checked)"> Primer mes gratis</label>
       </div>
     </div>
   `;
-}
+    }
 
-function renderTareas(c){
-  const tasks = state.tasks.filter(t=>t.clientId===c.id);
-  return `
+    function renderTareas(c) {
+      const tasks = state.tasks.filter(t => t.clientId === c.id);
+      return `
     <div class="quick-add">
       <input type="text" id="newTaskInput" placeholder="Nueva tarea para ${escapeAttr(c.name)}…" onkeydown="if(event.key==='Enter')addTask('${c.id}')">
       <button class="btn small" onclick="addTask('${c.id}')">Añadir</button>
     </div>
     <div class="card">
-      ${tasks.length? tasks.map(t=>`
+      ${tasks.length ? tasks.map(t => `
         <div class="task-row">
-          <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}')">
-          <div class="task-title ${t.done?'done':''}">${escapeHtml(t.title)}</div>
+          <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask('${t.id}')">
+          <div class="task-title ${t.done ? 'done' : ''}">${escapeHtml(t.title)}</div>
           <button class="btn danger" onclick="deleteTask('${t.id}')">✕</button>
         </div>`).join('') : `<div class="empty-list">Sin tareas para este cliente.</div>`}
     </div>
   `;
-}
+    }
 
-function renderNotas(c){
-  const notes = state.notes.filter(n=>n.clientId===c.id);
-  return `
+    function renderNotas(c) {
+      const notes = state.notes.filter(n => n.clientId === c.id);
+      return `
     <div class="quick-add">
       <input type="text" id="newNoteInput" placeholder="Nueva nota…" onkeydown="if(event.key==='Enter')addNote('${c.id}')">
       <button class="btn small" onclick="addNote('${c.id}')">Añadir</button>
     </div>
     <div class="card">
-      ${notes.length? notes.map(n=>`
+      ${notes.length ? notes.map(n => `
         <div class="note-row">
           <div class="note-text">${escapeHtml(n.text)}</div>
           <div class="note-date mono">${n.date}</div>
         </div>`).join('') : `<div class="empty-list">Sin notas todavía.</div>`}
     </div>
   `;
-}
+    }
 
-function renderDocumentos(c){
-  const k = state.contracts.find(k=>k.clientId===c.id);
-  return `
+    function renderCredenciales(c) {
+      const creds = state.credenciales.filter(k => k.clientId === c.id);
+      return `
+    <div class="card" style="margin-bottom:14px;">
+      <h3 style="margin-top:0;">Nueva credencial</h3>
+      <div class="field-row">
+        <div class="field"><label>Servicio</label><input type="text" id="credServicio" placeholder="Ej. Supabase, Twilio, Google Calendar…"></div>
+        <div class="field"><label>Usuario / Email</label><input type="text" id="credUsuario"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Contraseña / Token</label><input type="text" id="credPassword"></div>
+        <div class="field"><label>URL</label><input type="text" id="credUrl" placeholder="https://…"></div>
+      </div>
+      <div class="field" style="margin-bottom:10px;"><label>Notas</label><input type="text" id="credNotas" placeholder="Opcional"></div>
+      <button class="btn small" onclick="addCredencial('${c.id}')">+ Añadir credencial</button>
+    </div>
+    <div class="card">
+      ${creds.length ? creds.map(k => `
+        <div class="cred-row" style="border-bottom:1px solid var(--border);padding:10px 0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
+            <div style="flex:1;">
+              <div style="font-weight:600;">${escapeHtml(k.service)}</div>
+              ${k.user ? `<div class="mono" style="font-size:12px;color:var(--text-dim);">Usuario: ${escapeHtml(k.user)}</div>` : ''}
+              <div class="mono" style="font-size:12px;color:var(--text-dim);">
+                Contraseña: <span>${visibleCreds[k.id] ? escapeHtml(k.password) : '••••••••'}</span>
+                <button class="btn ghost small" style="padding:1px 6px;margin-left:6px;" onclick="toggleCredVisibility('${k.id}')">${visibleCreds[k.id] ? 'Ocultar' : 'Mostrar'}</button>
+              </div>
+              ${k.url ? `<div style="font-size:12px;"><a href="${escapeAttr(k.url)}" target="_blank" style="color:var(--amber);">${escapeHtml(k.url)}</a></div>` : ''}
+              ${k.notes ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${escapeHtml(k.notes)}</div>` : ''}
+            </div>
+            <button class="btn danger" onclick="deleteCredencial('${k.id}')">✕</button>
+          </div>
+        </div>`).join('') : `<div class="empty-list">Sin credenciales guardadas para este cliente.</div>`}
+    </div>
+  `;
+    }
+
+    function renderDocumentos(c) {
+      const k = state.contracts.find(k => k.clientId === c.id);
+      return `
     <div class="card">
       <h3>Documentos</h3>
       <div class="quick-add">
@@ -481,12 +927,12 @@ function renderDocumentos(c){
       ${renderFacturaList(c.id)}
     </div>
   `;
-}
+    }
 
-function renderDocList(clientId){
-  const list = state.documentos.filter(d=>d.clientId===clientId).slice().sort((a,b)=> new Date(b.uploadedAt)-new Date(a.uploadedAt));
-  if(!list.length) return `<div class="empty-list">Sin documentos todavía.</div>`;
-  return list.map(d=>`
+    function renderDocList(clientId) {
+      const list = state.documentos.filter(d => d.clientId === clientId).slice().sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+      if (!list.length) return `<div class="empty-list">Sin documentos todavía.</div>`;
+      return list.map(d => `
     <div class="task-row">
       <div style="flex:1;">
         <div>${escapeHtml(d.name)} <span class="client-tag">${tipoLabel(d.type)}</span></div>
@@ -496,287 +942,315 @@ function renderDocList(clientId){
       <button class="btn danger" onclick="eliminarDocumento('${d.id}')">✕</button>
     </div>
   `).join('');
-}
+    }
 
-function renderFacturaList(clientId){
-  const list = state.facturas.filter(f=>f.clientId===clientId).slice().sort((a,b)=> b.number.localeCompare(a.number));
-  if(!list.length) return `<div class="empty-list">Sin facturas todavía.</div>`;
-  return list.map(f=>`
+    function renderFacturaList(clientId) {
+      const list = state.facturas.filter(f => f.clientId === clientId).slice().sort((a, b) => b.number.localeCompare(a.number));
+      if (!list.length) return `<div class="empty-list">Sin facturas todavía.</div>`;
+      return list.map(f => `
     <div class="task-row">
       <div style="flex:1;">
         <div><strong class="mono">${escapeHtml(f.number)}</strong> — ${escapeHtml(f.concept)}</div>
         <div class="task-meta">${formatDate(f.issueDate)} · ${f.total.toFixed(2)} € <span class="estado-badge estado-${f.status}">${estadoLabel(f.status)}</span></div>
       </div>
       <select class="stage-select" style="max-width:120px;" onchange="cambiarEstadoFactura('${f.id}', this.value)">
-        ${['pendiente','cobrada','vencida'].map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${estadoLabel(s)}</option>`).join('')}
+        ${['pendiente', 'cobrada', 'vencida'].map(s => `<option value="${s}" ${f.status === s ? 'selected' : ''}>${estadoLabel(s)}</option>`).join('')}
       </select>
-      <button class="btn ghost small" onclick="verFacturaPdf('${f.id}')" ${f.pdfPath?'':'disabled'}>PDF</button>
+      <button class="btn ghost small" onclick="verFacturaPdf('${f.id}')" ${f.pdfPath ? '' : 'disabled'}>PDF</button>
     </div>
   `).join('');
-}
+    }
 
-function renderGlobalTasks(){
-  const pending = state.tasks.filter(t=>!t.done);
-  const done = state.tasks.filter(t=>t.done);
-  return `
+    function renderGlobalTasks() {
+      const pending = state.tasks.filter(t => !t.done);
+      const done = state.tasks.filter(t => t.done);
+      return `
     <h2 style="margin-top:0;">Tareas generales</h2>
     <div class="quick-add">
       <input type="text" id="newGlobalTask" placeholder="Nueva tarea interna (sin cliente asociado)…" onkeydown="if(event.key==='Enter')addTask(null)">
       <button class="btn small" onclick="addTask(null)">Añadir</button>
     </div>
     <div class="global-tasks">
-      ${pending.map(t=>renderGlobalTaskRow(t)).join('') || '<div class="empty-list">No hay tareas pendientes 🎉</div>'}
+      ${pending.map(t => renderGlobalTaskRow(t)).join('') || '<div class="empty-list">No hay tareas pendientes 🎉</div>'}
     </div>
-    ${done.length? `<h3 style="color:var(--text-dim);font-size:13px;margin-top:24px;">Completadas</h3><div class="global-tasks">${done.map(t=>renderGlobalTaskRow(t)).join('')}</div>` : ''}
+    ${done.length ? `<h3 style="color:var(--text-dim);font-size:13px;margin-top:24px;">Completadas</h3><div class="global-tasks">${done.map(t => renderGlobalTaskRow(t)).join('')}</div>` : ''}
   `;
-}
+    }
 
-function renderGlobalTaskRow(t){
-  const c = t.clientId ? clientById(t.clientId) : null;
-  return `
+    function renderGlobalTaskRow(t) {
+      const c = t.clientId ? clientById(t.clientId) : null;
+      return `
     <div class="task-row">
-      <input type="checkbox" ${t.done?'checked':''} onchange="toggleTask('${t.id}')">
-      <div class="task-title ${t.done?'done':''}">${escapeHtml(t.title)}${c?`<span class="client-tag">${escapeHtml(c.name)}</span>`:''}</div>
+      <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask('${t.id}')">
+      <div class="task-title ${t.done ? 'done' : ''}">${escapeHtml(t.title)}${c ? `<span class="client-tag">${escapeHtml(c.name)}</span>` : ''}</div>
       <button class="btn danger" onclick="deleteTask('${t.id}')">✕</button>
     </div>
   `;
-}
+    }
 
-/* ---- Navegación ---- */
-function setScreen(s){ view.screen = s; render(); }
-function setTab(t){ view.tab = t; render(); }
-function selectClient(id){ view.clientId = id; view.tab = 'resumen'; render(); }
+    /* ---- Navegación ---- */
+    function setScreen(s) { view.screen = s; render(); }
+    function setTab(t) { view.tab = t; render(); }
+    function selectClient(id) { view.clientId = id; view.tab = 'resumen'; render(); }
 
-/* ---- Clientes ---- */
-async function addClient(){
-  const name = prompt('Nombre de la autoescuela:');
-  if(!name) return;
-  const { data, error } = await sb.from('clientes').insert({ nombre: name }).select().single();
-  if(error){ showToast('Error creando cliente'); return; }
-  state.clients.push(mapClient(data));
-  view.clientId = data.id; view.tab = 'resumen';
-  render();
-}
+    /* ---- Clientes ---- */
+    async function addClient() {
+      const name = prompt('Nombre de la autoescuela:');
+      if (!name) return;
+      const { data, error } = await sb.from('clientes').insert({ nombre: name }).select().single();
+      if (error) { showToast('Error creando cliente'); return; }
+      state.clients.push(mapClient(data));
+      view.clientId = data.id; view.tab = 'resumen';
+      render();
+    }
 
-async function updateClient(id, field, value){
-  const c = clientById(id); if(!c) return;
-  c[field] = value; render();
-  const dbField = { name:'nombre', contact:'contacto', city:'ciudad', phone:'telefono', email:'email', stage:'stage' }[field];
-  const { error } = await sb.from('clientes').update({ [dbField]: value }).eq('id', id);
-  showToast(error ? 'Error guardando' : 'Guardado');
-}
+    async function updateClient(id, field, value) {
+      const c = clientById(id); if (!c) return;
+      c[field] = value; render();
+      const dbField = { name: 'nombre', contact: 'contacto', city: 'ciudad', phone: 'telefono', email: 'email', stage: 'stage' }[field];
+      const { error } = await sb.from('clientes').update({ [dbField]: value }).eq('id', id);
+      showToast(error ? 'Error guardando' : 'Guardado');
+    }
 
-async function deleteClient(id){
-  if(!confirm('¿Eliminar este cliente y todos sus contratos, tareas, notas y documentos?')) return;
-  const { error } = await sb.from('clientes').delete().eq('id', id);
-  if(error){
-    showToast(error.code === '23503' ? 'No se puede eliminar: tiene facturas emitidas que deben conservarse' : 'Error eliminando cliente');
-    return;
-  }
-  view.clientId = null;
-  await loadAll(); render();
-}
+    async function deleteClient(id) {
+      if (!confirm('¿Eliminar este cliente y todos sus contratos, tareas, notas y documentos?')) return;
+      const { error } = await sb.from('clientes').delete().eq('id', id);
+      if (error) {
+        showToast(error.code === '23503' ? 'No se puede eliminar: tiene facturas emitidas que deben conservarse' : 'Error eliminando cliente');
+        return;
+      }
+      view.clientId = null;
+      await loadAll(); render();
+    }
 
-/* ---- Contratos ---- */
-async function addContract(clientId){
-  const { data, error } = await sb.from('contratos').insert({
-    cliente_id: clientId, descripcion:'Contrato de Prestación de Servicios Drivo', setup_fee:0, monthly_fee:0, first_month_free:false, signed:false
-  }).select().single();
-  if(error){ showToast('Error creando contrato'); return; }
-  state.contracts.push(mapContract(data));
-  render();
-}
+    /* ---- Contratos ---- */
+    async function addContract(clientId) {
+      const { data, error } = await sb.from('contratos').insert({
+        cliente_id: clientId, descripcion: 'Contrato de Prestación de Servicios Drivo', setup_fee: 0, monthly_fee: 0, first_month_free: false, signed: false
+      }).select().single();
+      if (error) { showToast('Error creando contrato'); return; }
+      state.contracts.push(mapContract(data));
+      render();
+    }
 
-async function updateContract(id, field, value){
-  const k = state.contracts.find(k=>k.id===id); if(!k) return;
-  k[field] = (field==='setupFee'||field==='monthlyFee') ? Number(value) : value;
-  render();
-  const dbField = { description:'descripcion', setupFee:'setup_fee', monthlyFee:'monthly_fee', firstMonthFree:'first_month_free', signed:'signed', date:'fecha' }[field];
-  const dbValue = k[field] === '' ? null : k[field];
-  const { error } = await sb.from('contratos').update({ [dbField]: dbValue }).eq('id', id);
-  showToast(error ? 'Error guardando' : 'Guardado');
-}
+    async function updateContract(id, field, value) {
+      const k = state.contracts.find(k => k.id === id); if (!k) return;
+      k[field] = (field === 'setupFee' || field === 'monthlyFee') ? Number(value) : value;
+      render();
+      const dbField = { description: 'descripcion', setupFee: 'setup_fee', monthlyFee: 'monthly_fee', firstMonthFree: 'first_month_free', signed: 'signed', date: 'fecha' }[field];
+      const dbValue = k[field] === '' ? null : k[field];
+      const { error } = await sb.from('contratos').update({ [dbField]: dbValue }).eq('id', id);
+      showToast(error ? 'Error guardando' : 'Guardado');
+    }
 
-/* ---- Tareas ---- */
-async function addTask(clientId){
-  const inputId = clientId ? 'newTaskInput' : 'newGlobalTask';
-  const input = document.getElementById(inputId);
-  const title = input ? input.value.trim() : '';
-  if(!title) return;
-  const { data, error } = await sb.from('tareas').insert({ cliente_id: clientId, title }).select().single();
-  if(error){ showToast('Error creando tarea'); return; }
-  state.tasks.push(mapTask(data));
-  render();
-}
+    /* ---- Tareas ---- */
+    async function addTask(clientId) {
+      const inputId = clientId ? 'newTaskInput' : 'newGlobalTask';
+      const input = document.getElementById(inputId);
+      const title = input ? input.value.trim() : '';
+      if (!title) return;
+      const { data, error } = await sb.from('tareas').insert({ cliente_id: clientId, title }).select().single();
+      if (error) { showToast('Error creando tarea'); return; }
+      state.tasks.push(mapTask(data));
+      render();
+    }
 
-async function toggleTask(id){
-  const t = state.tasks.find(t=>t.id===id); if(!t) return;
-  t.done = !t.done; render();
-  const { error } = await sb.from('tareas').update({ done: t.done }).eq('id', id);
-  if(error) showToast('Error guardando');
-}
+    async function toggleTask(id) {
+      const t = state.tasks.find(t => t.id === id); if (!t) return;
+      t.done = !t.done; render();
+      const { error } = await sb.from('tareas').update({ done: t.done }).eq('id', id);
+      if (error) showToast('Error guardando');
+    }
 
-async function deleteTask(id){
-  state.tasks = state.tasks.filter(t=>t.id!==id); render();
-  const { error } = await sb.from('tareas').delete().eq('id', id);
-  if(error) showToast('Error eliminando');
-}
+    async function deleteTask(id) {
+      state.tasks = state.tasks.filter(t => t.id !== id); render();
+      const { error } = await sb.from('tareas').delete().eq('id', id);
+      if (error) showToast('Error eliminando');
+    }
 
-/* ---- Notas ---- */
-async function addNote(clientId){
-  const input = document.getElementById('newNoteInput');
-  const text = input ? input.value.trim() : '';
-  if(!text) return;
-  const { data, error } = await sb.from('notas').insert({ cliente_id: clientId, texto: text }).select().single();
-  if(error){ showToast('Error creando nota'); return; }
-  state.notes.unshift(mapNote(data));
-  render();
-}
+    /* ---- Notas ---- */
+    async function addNote(clientId) {
+      const input = document.getElementById('newNoteInput');
+      const text = input ? input.value.trim() : '';
+      if (!text) return;
+      const { data, error } = await sb.from('notas').insert({ cliente_id: clientId, texto: text }).select().single();
+      if (error) { showToast('Error creando nota'); return; }
+      state.notes.unshift(mapNote(data));
+      render();
+    }
 
-/* ---- Documentos (Storage privado) ---- */
-async function uploadDocumento(clientId){
-  const fileInput = document.getElementById('docFileInput');
-  const tipoSelect = document.getElementById('docTipoSelect');
-  const file = fileInput.files[0];
-  if(!file){ alert('Selecciona un archivo primero.'); return; }
-  const tipo = tipoSelect.value;
-  const path = `${clientId}/${Date.now()}_${file.name}`;
-  const { error: upError } = await sb.storage.from('documentos').upload(path, file);
-  if(upError){ showToast('Error subiendo archivo'); return; }
-  const { error: insError } = await sb.from('documentos').insert({ cliente_id: clientId, nombre: file.name, tipo, storage_path: path });
-  if(insError){ showToast('Error guardando documento'); return; }
-  await loadAll(); render();
-  showToast('Documento subido');
-}
+    /* ---- Credenciales ---- */
+    async function addCredencial(clientId) {
+      const servicio = document.getElementById('credServicio').value.trim();
+      const usuario = document.getElementById('credUsuario').value.trim();
+      const password = document.getElementById('credPassword').value.trim();
+      const url = document.getElementById('credUrl').value.trim();
+      const notas = document.getElementById('credNotas').value.trim();
+      if (!servicio) { showToast('Indica al menos el servicio'); return; }
+      const { data, error } = await sb.from('credenciales').insert({
+        cliente_id: clientId, servicio, usuario, password, url, notas
+      }).select().single();
+      if (error) { showToast('Error guardando credencial'); return; }
+      state.credenciales.push(mapCredencial(data));
+      render();
+    }
 
-async function verDocumento(id){
-  const d = state.documentos.find(d=>d.id===id); if(!d) return;
-  const { data, error } = await sb.storage.from('documentos').createSignedUrl(d.storagePath, 120);
-  if(error){ showToast('Error generando enlace'); return; }
-  window.open(data.signedUrl, '_blank');
-}
+    function toggleCredVisibility(id) {
+      visibleCreds[id] = !visibleCreds[id];
+      render();
+    }
 
-async function eliminarDocumento(id){
-  if(!confirm('¿Eliminar este documento?')) return;
-  const d = state.documentos.find(d=>d.id===id); if(!d) return;
-  await sb.storage.from('documentos').remove([d.storagePath]);
-  const { error } = await sb.from('documentos').delete().eq('id', id);
-  if(error){ showToast('Error eliminando documento'); return; }
-  await loadAll(); render();
-}
+    async function deleteCredencial(id) {
+      state.credenciales = state.credenciales.filter(k => k.id !== id); render();
+      const { error } = await sb.from('credenciales').delete().eq('id', id);
+      if (error) showToast('Error eliminando');
+    }
 
-/* ---- Facturas ---- */
-async function generarFactura(clientId, kind){
-  const c = clientById(clientId);
-  const k = state.contracts.find(k=>k.clientId===clientId);
-  if(!k){ alert('Este cliente no tiene contrato. Crea uno primero en la pestaña Contrato.'); return; }
+    /* ---- Documentos (Storage privado) ---- */
+    async function uploadDocumento(clientId) {
+      const fileInput = document.getElementById('docFileInput');
+      const tipoSelect = document.getElementById('docTipoSelect');
+      const file = fileInput.files[0];
+      if (!file) { alert('Selecciona un archivo primero.'); return; }
+      const tipo = tipoSelect.value;
+      const path = `${clientId}/${Date.now()}_${file.name}`;
+      const { error: upError } = await sb.storage.from('documentos').upload(path, file);
+      if (upError) { showToast('Error subiendo archivo'); return; }
+      const { error: insError } = await sb.from('documentos').insert({ cliente_id: clientId, nombre: file.name, tipo, storage_path: path });
+      if (insError) { showToast('Error guardando documento'); return; }
+      await loadAll(); render();
+      showToast('Documento subido');
+    }
 
-  const baseDefault = kind === 'setup' ? k.setupFee : k.monthlyFee;
-  const conceptoDefault = kind === 'setup'
-    ? 'Alta y puesta en marcha del servicio Drivo'
-    : `Cuota mensual del servicio Drivo`;
+    async function verDocumento(id) {
+      const d = state.documentos.find(d => d.id === id); if (!d) return;
+      const { data, error } = await sb.storage.from('documentos').createSignedUrl(d.storagePath, 120);
+      if (error) { showToast('Error generando enlace'); return; }
+      window.open(data.signedUrl, '_blank');
+    }
 
-  const concepto = prompt('Concepto de la factura:', conceptoDefault);
-  if(concepto === null) return;
-  const baseStr = prompt('Base imponible (€):', String(baseDefault || 0));
-  if(baseStr === null) return;
-  const base = Number(baseStr);
-  if(!(base > 0)){ alert('Base imponible inválida.'); return; }
+    async function eliminarDocumento(id) {
+      if (!confirm('¿Eliminar este documento?')) return;
+      const d = state.documentos.find(d => d.id === id); if (!d) return;
+      await sb.storage.from('documentos').remove([d.storagePath]);
+      const { error } = await sb.from('documentos').delete().eq('id', id);
+      if (error) { showToast('Error eliminando documento'); return; }
+      await loadAll(); render();
+    }
 
-  const anio = new Date().getFullYear();
-  const { data: numero, error: numError } = await sb.rpc('generar_numero_factura', { p_anio: anio });
-  if(numError){ showToast('Error generando número de factura'); return; }
+    /* ---- Facturas ---- */
+    async function generarFactura(clientId, kind) {
+      const c = clientById(clientId);
+      const k = state.contracts.find(k => k.clientId === clientId);
+      if (!k) { alert('Este cliente no tiene contrato. Crea uno primero en la pestaña Contrato.'); return; }
 
-  const ivaPct = 21, irpfPct = 15;
-  const iva = round2(base * ivaPct / 100);
-  const irpf = round2(base * irpfPct / 100);
-  const total = round2(base + iva - irpf);
-  const fechaEmision = todayISO();
+      const baseDefault = kind === 'setup' ? k.setupFee : k.monthlyFee;
+      const conceptoDefault = kind === 'setup'
+        ? 'Alta y puesta en marcha del servicio Drivo'
+        : `Cuota mensual del servicio Drivo`;
 
-  const { data: inserted, error: insError } = await sb.from('facturas').insert({
-    cliente_id: clientId, numero, concepto, base_imponible: base,
-    iva_pct: ivaPct, iva, irpf_pct: irpfPct, irpf, total,
-    fecha_emision: fechaEmision, estado: 'pendiente'
-  }).select().single();
-  if(insError){ showToast('Error guardando factura'); return; }
+      const concepto = prompt('Concepto de la factura:', conceptoDefault);
+      if (concepto === null) return;
+      const baseStr = prompt('Base imponible (€):', String(baseDefault || 0));
+      if (baseStr === null) return;
+      const base = Number(baseStr);
+      if (!(base > 0)) { alert('Base imponible inválida.'); return; }
 
-  const pdfBlob = buildInvoicePdf({ numero, concepto, base, ivaPct, iva, irpfPct, irpf, total, cliente: c, fecha: fechaEmision });
-  const pdfPath = `${clientId}/${numero}.pdf`;
-  const { error: upError } = await sb.storage.from('facturas').upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
-  if(!upError){
-    await sb.from('facturas').update({ pdf_path: pdfPath }).eq('id', inserted.id);
-  }
+      const anio = new Date().getFullYear();
+      const { data: numero, error: numError } = await sb.rpc('generar_numero_factura', { p_anio: anio });
+      if (numError) { showToast('Error generando número de factura'); return; }
 
-  await loadAll(); render();
-  showToast(upError ? `Factura ${numero} guardada (fallo subiendo el PDF)` : `Factura ${numero} generada`);
-}
+      const ivaPct = 21, irpfPct = 15;
+      const iva = round2(base * ivaPct / 100);
+      const irpf = round2(base * irpfPct / 100);
+      const total = round2(base + iva - irpf);
+      const fechaEmision = todayISO();
 
-async function cambiarEstadoFactura(id, status){
-  const f = state.facturas.find(f=>f.id===id); if(!f) return;
-  f.status = status;
-  f.paidDate = status === 'cobrada' ? todayISO() : null;
-  render();
-  const { error } = await sb.from('facturas').update({ estado: status, fecha_cobro: f.paidDate }).eq('id', id);
-  if(error) showToast('Error guardando');
-}
+      const { data: inserted, error: insError } = await sb.from('facturas').insert({
+        cliente_id: clientId, numero, concepto, base_imponible: base,
+        iva_pct: ivaPct, iva, irpf_pct: irpfPct, irpf, total,
+        fecha_emision: fechaEmision, estado: 'pendiente'
+      }).select().single();
+      if (insError) { showToast('Error guardando factura'); return; }
 
-async function verFacturaPdf(id){
-  const f = state.facturas.find(f=>f.id===id); if(!f || !f.pdfPath) return;
-  const { data, error } = await sb.storage.from('facturas').createSignedUrl(f.pdfPath, 120);
-  if(error){ showToast('Error generando enlace'); return; }
-  window.open(data.signedUrl, '_blank');
-}
+      const pdfBlob = buildInvoicePdf({ numero, concepto, base, ivaPct, iva, irpfPct, irpf, total, cliente: c, fecha: fechaEmision });
+      const pdfPath = `${clientId}/${numero}.pdf`;
+      const { error: upError } = await sb.storage.from('facturas').upload(pdfPath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+      if (!upError) {
+        await sb.from('facturas').update({ pdf_path: pdfPath }).eq('id', inserted.id);
+      }
 
-function buildInvoicePdf({ numero, concepto, base, ivaPct, iva, irpfPct, irpf, total, cliente, fecha }){
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+      await loadAll(); render();
+      showToast(upError ? `Factura ${numero} guardada (fallo subiendo el PDF)` : `Factura ${numero} generada`);
+    }
 
-  doc.setFont('helvetica','bold'); doc.setFontSize(18);
-  doc.text('FACTURA', 20, 24);
-  doc.setFont('helvetica','normal'); doc.setFontSize(10);
-  doc.text(`Número: ${numero}`, 20, 32);
-  doc.text(`Fecha de emisión: ${formatDate(fecha)}`, 20, 38);
+    async function cambiarEstadoFactura(id, status) {
+      const f = state.facturas.find(f => f.id === id); if (!f) return;
+      f.status = status;
+      f.paidDate = status === 'cobrada' ? todayISO() : null;
+      render();
+      const { error } = await sb.from('facturas').update({ estado: status, fecha_cobro: f.paidDate }).eq('id', id);
+      if (error) showToast('Error guardando');
+    }
 
-  doc.setFont('helvetica','bold'); doc.text('Emisor', 20, 52);
-  doc.setFont('helvetica','normal');
-  doc.text([MI_EMPRESA.nombre, `NIF: ${MI_EMPRESA.nif}`, MI_EMPRESA.direccion, MI_EMPRESA.email], 20, 58);
+    async function verFacturaPdf(id) {
+      const f = state.facturas.find(f => f.id === id); if (!f || !f.pdfPath) return;
+      const { data, error } = await sb.storage.from('facturas').createSignedUrl(f.pdfPath, 120);
+      if (error) { showToast('Error generando enlace'); return; }
+      window.open(data.signedUrl, '_blank');
+    }
 
-  doc.setFont('helvetica','bold'); doc.text('Cliente', 120, 52);
-  doc.setFont('helvetica','normal');
-  doc.text([cliente.name, cliente.city || ''].filter(Boolean), 120, 58);
+    function buildInvoicePdf({ numero, concepto, base, ivaPct, iva, irpfPct, irpf, total, cliente, fecha }) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
 
-  let y = 92;
-  doc.setFont('helvetica','bold');
-  doc.text('Concepto', 20, y); doc.text('Importe', 170, y);
-  doc.line(20, y + 2, 190, y + 2);
-  doc.setFont('helvetica','normal');
-  y += 10;
-  doc.text(concepto, 20, y, { maxWidth: 140 });
-  doc.text(`${base.toFixed(2)} €`, 170, y);
-  y += 10;
-  doc.text(`IVA (${ivaPct}%)`, 20, y); doc.text(`${iva.toFixed(2)} €`, 170, y);
-  y += 8;
-  doc.text(`Retención IRPF (${irpfPct}%)`, 20, y); doc.text(`-${irpf.toFixed(2)} €`, 170, y);
-  y += 10;
-  doc.line(20, y, 190, y);
-  y += 8;
-  doc.setFont('helvetica','bold');
-  doc.text('TOTAL', 20, y); doc.text(`${total.toFixed(2)} €`, 170, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+      doc.text('FACTURA', 20, 24);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      doc.text(`Número: ${numero}`, 20, 32);
+      doc.text(`Fecha de emisión: ${formatDate(fecha)}`, 20, 38);
 
-  y += 20;
-  doc.setFont('helvetica','normal'); doc.setFontSize(9);
-  doc.text(`Forma de pago: transferencia bancaria — IBAN ${MI_EMPRESA.iban}`, 20, y);
+      doc.setFont('helvetica', 'bold'); doc.text('Emisor', 20, 52);
+      doc.setFont('helvetica', 'normal');
+      doc.text([MI_EMPRESA.nombre, `NIF: ${MI_EMPRESA.nif}`, MI_EMPRESA.direccion, MI_EMPRESA.email], 20, 58);
 
-  return doc.output('blob');
-}
+      doc.setFont('helvetica', 'bold'); doc.text('Cliente', 120, 52);
+      doc.setFont('helvetica', 'normal');
+      doc.text([cliente.name, cliente.city || ''].filter(Boolean), 120, 58);
 
-/* ---- Utilidades ---- */
-function escapeHtml(s){
-  return String(s??'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-function escapeAttr(s){ return escapeHtml(s); }
+      let y = 92;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Concepto', 20, y); doc.text('Importe', 170, y);
+      doc.line(20, y + 2, 190, y + 2);
+      doc.setFont('helvetica', 'normal');
+      y += 10;
+      doc.text(concepto, 20, y, { maxWidth: 140 });
+      doc.text(`${base.toFixed(2)} €`, 170, y);
+      y += 10;
+      doc.text(`IVA (${ivaPct}%)`, 20, y); doc.text(`${iva.toFixed(2)} €`, 170, y);
+      y += 8;
+      doc.text(`Retención IRPF (${irpfPct}%)`, 20, y); doc.text(`-${irpf.toFixed(2)} €`, 170, y);
+      y += 10;
+      doc.line(20, y, 190, y);
+      y += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.text('TOTAL', 20, y); doc.text(`${total.toFixed(2)} €`, 170, y);
 
-init();
-</script>
+      y += 20;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+      doc.text(`Forma de pago: transferencia bancaria — IBAN ${MI_EMPRESA.iban}`, 20, y);
+
+      return doc.output('blob');
+    }
+
+    /* ---- Utilidades ---- */
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+    function escapeAttr(s) { return escapeHtml(s); }
+
+    init();
+  </script>
 </body>
+
 </html>
