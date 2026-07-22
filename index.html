@@ -628,7 +628,7 @@
     function mapNote(r) { return { id: r.id, clientId: r.cliente_id, text: r.texto, date: formatDate(r.created_at) }; }
     function mapDocumento(r) { return { id: r.id, clientId: r.cliente_id, name: r.nombre, type: r.tipo, storagePath: r.storage_path, uploadedAt: r.fecha_subida }; }
     function mapFactura(r) { return { id: r.id, clientId: r.cliente_id, number: r.numero, concept: r.concepto, base: Number(r.base_imponible), ivaPct: Number(r.iva_pct), iva: Number(r.iva), irpfPct: Number(r.irpf_pct), irpf: Number(r.irpf), total: Number(r.total), issueDate: r.fecha_emision, paidDate: r.fecha_cobro, status: r.estado, pdfPath: r.pdf_path }; }
-    function mapCredencial(r) { return { id: r.id, clientId: r.cliente_id, service: r.servicio, user: r.usuario || '', password: r.password || '', url: r.url || '', notes: r.notas || '', createdAt: formatDate(r.created_at) }; }
+    function mapCredencial(r) { return { id: r.id, clientId: r.cliente_id, service: r.servicio, field: r.campo, value: r.valor || '', createdAt: formatDate(r.created_at) }; }
 
     /* ---- Auth ---- */
     async function init() {
@@ -862,40 +862,56 @@
   `;
     }
 
+    const SERVICIOS_CREDENCIALES = ['Supabase', 'Twilio', 'Google Calendar', 'n8n', 'Meta / WhatsApp Business', 'Netlify', 'GitHub', 'Otro'];
+
     function renderCredenciales(c) {
       const creds = state.credenciales.filter(k => k.clientId === c.id);
+      const porServicio = {};
+      creds.forEach(k => {
+        if (!porServicio[k.service]) porServicio[k.service] = [];
+        porServicio[k.service].push(k);
+      });
+      const servicios = Object.keys(porServicio).sort();
+
       return `
     <div class="card" style="margin-bottom:14px;">
-      <h3 style="margin-top:0;">Nueva credencial</h3>
+      <h3 style="margin-top:0;">Añadir campo</h3>
       <div class="field-row">
-        <div class="field"><label>Servicio</label><input type="text" id="credServicio" placeholder="Ej. Supabase, Twilio, Google Calendar…"></div>
-        <div class="field"><label>Usuario / Email</label><input type="text" id="credUsuario"></div>
+        <div class="field">
+          <label>Servicio</label>
+          <select id="credServicio">
+            ${SERVICIOS_CREDENCIALES.map(s => `<option value="${escapeAttr(s)}">${escapeHtml(s)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Campo</label><input type="text" id="credCampo" placeholder="Ej. URL, Anon Key, Account SID…"></div>
       </div>
-      <div class="field-row">
-        <div class="field"><label>Contraseña / Token</label><input type="text" id="credPassword"></div>
-        <div class="field"><label>URL</label><input type="text" id="credUrl" placeholder="https://…"></div>
-      </div>
-      <div class="field" style="margin-bottom:10px;"><label>Notas</label><input type="text" id="credNotas" placeholder="Opcional"></div>
-      <button class="btn small" onclick="addCredencial('${c.id}')">+ Añadir credencial</button>
+      <div class="field" style="margin-bottom:10px;"><label>Valor</label><input type="text" id="credValor"></div>
+      <button class="btn small" onclick="addCredencial('${c.id}')">+ Añadir</button>
     </div>
-    <div class="card">
-      ${creds.length ? creds.map(k => `
-        <div class="cred-row" style="border-bottom:1px solid var(--border);padding:10px 0;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;">
-            <div style="flex:1;">
-              <div style="font-weight:600;">${escapeHtml(k.service)}</div>
-              ${k.user ? `<div class="mono" style="font-size:12px;color:var(--text-dim);">Usuario: ${escapeHtml(k.user)}</div>` : ''}
-              <div class="mono" style="font-size:12px;color:var(--text-dim);">
-                Contraseña: <span>${visibleCreds[k.id] ? escapeHtml(k.password) : '••••••••'}</span>
-                <button class="btn ghost small" style="padding:1px 6px;margin-left:6px;" onclick="toggleCredVisibility('${k.id}')">${visibleCreds[k.id] ? 'Ocultar' : 'Mostrar'}</button>
-              </div>
-              ${k.url ? `<div style="font-size:12px;"><a href="${escapeAttr(k.url)}" target="_blank" style="color:var(--amber);">${escapeHtml(k.url)}</a></div>` : ''}
-              ${k.notes ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">${escapeHtml(k.notes)}</div>` : ''}
-            </div>
-            <button class="btn danger" onclick="deleteCredencial('${k.id}')">✕</button>
-          </div>
-        </div>`).join('') : `<div class="empty-list">Sin credenciales guardadas para este cliente.</div>`}
-    </div>
+    ${servicios.length ? servicios.map(servicio => `
+      <div class="card" style="margin-bottom:14px;">
+        <h3 style="margin-top:0;">${escapeHtml(servicio)}</h3>
+        <table class="cred-table" style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="text-align:left;color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:.5px;">
+              <th style="padding:4px 8px 8px 0;">Campo</th>
+              <th style="padding:4px 8px 8px 0;">Valor</th>
+              <th style="padding:4px 8px 8px 0;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${porServicio[servicio].map(k => `
+              <tr style="border-top:1px solid var(--border);">
+                <td class="mono" style="padding:8px 8px 8px 0;white-space:nowrap;">${escapeHtml(k.field)}</td>
+                <td class="mono" style="padding:8px 8px 8px 0;word-break:break-all;">
+                  ${visibleCreds[k.id] ? escapeHtml(k.value) : '••••••••'}
+                  <button class="btn ghost small" style="padding:1px 6px;margin-left:6px;" onclick="toggleCredVisibility('${k.id}')">${visibleCreds[k.id] ? 'Ocultar' : 'Mostrar'}</button>
+                </td>
+                <td style="padding:8px 0;text-align:right;"><button class="btn danger" onclick="deleteCredencial('${k.id}')">✕</button></td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`).join('') : `<div class="empty-list">Sin credenciales guardadas para este cliente.</div>`}
   `;
     }
 
@@ -1081,14 +1097,12 @@
 
     /* ---- Credenciales ---- */
     async function addCredencial(clientId) {
-      const servicio = document.getElementById('credServicio').value.trim();
-      const usuario = document.getElementById('credUsuario').value.trim();
-      const password = document.getElementById('credPassword').value.trim();
-      const url = document.getElementById('credUrl').value.trim();
-      const notas = document.getElementById('credNotas').value.trim();
-      if (!servicio) { showToast('Indica al menos el servicio'); return; }
+      const servicio = document.getElementById('credServicio').value;
+      const campo = document.getElementById('credCampo').value.trim();
+      const valor = document.getElementById('credValor').value.trim();
+      if (!campo || !valor) { showToast('Indica campo y valor'); return; }
       const { data, error } = await sb.from('credenciales').insert({
-        cliente_id: clientId, servicio, usuario, password, url, notas
+        cliente_id: clientId, servicio, campo, valor
       }).select().single();
       if (error) { showToast('Error guardando credencial'); return; }
       state.credenciales.push(mapCredencial(data));
